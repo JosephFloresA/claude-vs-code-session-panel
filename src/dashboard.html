@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es" data-theme="dark" data-density="comoda">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<meta name="monitor-token" content="{{MONITOR_TOKEN}}">
+<meta name="panel-config" content="{{PANEL_CONFIG}}">
+<title>Sesiones de Claude</title>
+<link rel="icon" id="favicon" href="data:,">
+<link rel="stylesheet" href="/static/app.css">
+<script>
+  // Tema antes de pintar, para no parpadear.
+  try {
+    const s = JSON.parse(localStorage.getItem("monitor-sesiones:v2") || "{}");
+    const t = s.theme ?? "dark";
+    const dark = t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    document.documentElement.dataset.density = s.density ?? "comoda";
+  } catch {}
+</script>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="logo"><i data-icon="sparkles" data-size="15"></i></span>Sesiones de Claude</div>
+    <nav class="seg" id="layout" aria-label="Vista" title="Cambiar vista (g)">
+      <button data-layout="bandeja"><i data-icon="inbox"></i><span>Bandeja</span></button>
+      <button data-layout="tabla"><i data-icon="table"></i><span>Tabla</span></button>
+      <button data-layout="tablero"><i data-icon="kanban"></i><span>Tablero</span></button>
+      <button data-layout="archivos"><i data-icon="note"></i><span>Archivos</span></button>
+      <button data-layout="proyectos"><i data-icon="layers"></i><span>Proyectos</span></button>
+    </nav>
+    <div class="kpis" id="kpis"></div>
+    <span class="spacer"></span>
+    <label class="searchbox"><i data-icon="search"></i><input class="input" id="q" type="search" placeholder="Filtrar… (Enter: buscar en todas las conversaciones)" aria-label="Buscar"><kbd>/</kbd></label>
+    <button class="btn" id="btn-hoy" title="Día: línea de tiempo, costo y resumen (h)"><i data-icon="sun"></i>Día</button>
+    <button class="btn" id="btn-perm" title="Aprobar permisos de todas las sesiones desde este panel"></button>
+    <button class="btn icon" id="btn-bell" title="Activar o desactivar avisos" aria-label="Avisos"></button>
+    <button class="btn icon" id="btn-settings" title="Ajustes (,)" aria-label="Ajustes"><i data-icon="settings"></i></button>
+    <button class="btn icon" id="btn-help" title="Atajos de teclado (?)" aria-label="Atajos"><i data-icon="keyboard"></i></button>
+  </header>
+  <div>
+    <div class="viewbar">
+      <div class="tabs" id="tabs" role="tablist"></div>
+      <span class="sep"></span>
+      <div id="chipfilters" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"></div>
+      <span class="spacer"></span>
+      <button class="btn ghost hidden" id="clear-filters"><i data-icon="x"></i>Limpiar</button>
+      <button class="btn primary hidden" id="save-view"><i data-icon="plus"></i>Guardar vista</button>
+      <span class="status" id="status"><span class="live"></span>conectando…</span>
+    </div>
+    <div id="banner"></div>
+    <div id="permbar"></div>
+  </div>
+  <main id="main" style="min-height:0;overflow:hidden">
+    <div style="padding:24px 30px;max-width:520px"><div class="skeleton"></div><div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:60%"></div></div>
+  </main>
+</div>
+
+<div class="scrim hidden" id="scrim"></div>
+
+<aside class="drawer" id="drawer" aria-label="Detalle de la sesión">
+  <div class="dh"><b>Detalle</b><span class="spacer"></span><span class="muted" style="font-size:12px"><kbd>j</kbd> <kbd>k</kbd> navegar · <kbd>Esc</kbd> cerrar</span><button class="btn ghost icon" data-close aria-label="Cerrar"><i data-icon="x"></i></button></div>
+  <div class="db detail"></div>
+</aside>
+
+<aside class="drawer settings" id="settings" aria-label="Ajustes">
+  <div class="dh"><i data-icon="settings"></i><b>Ajustes</b><span class="spacer"></span><button class="btn ghost icon" data-close aria-label="Cerrar"><i data-icon="x"></i></button></div>
+  <div class="stabs"></div>
+  <div class="db"><div class="spane"></div></div>
+</aside>
+
+<dialog id="dlg-hoy">
+  <div class="dh"><h2><i data-icon="sun"></i>Resumen del día</h2><span class="spacer"></span><button class="btn" id="dlg-copy"><i data-icon="copy"></i>Copiar Markdown</button><button class="btn ghost icon" data-dclose aria-label="Cerrar"><i data-icon="x"></i></button></div>
+  <pre id="dlg-body"></pre>
+</dialog>
+
+<dialog id="dlg-help">
+  <div class="dh"><h2><i data-icon="keyboard"></i>Atajos de teclado</h2><span class="spacer"></span><button class="btn ghost icon" data-dclose aria-label="Cerrar"><i data-icon="x"></i></button></div>
+  <div class="help">
+    <span><kbd>j</kbd> <kbd>k</kbd></span><span>Bajar / subir por las sesiones</span>
+    <kbd>Enter</kbd><span>Abrir en VS Code (en tabla y tablero: abrir el detalle)</span>
+    <kbd>x</kbd><span>Seleccionar para acciones en lote (también Ctrl + clic)</span>
+    <kbd>v</kbd><span>Marcar como vista (o las seleccionadas)</span>
+    <kbd>p</kbd><span>Fijar arriba / soltar</span>
+    <kbd>a</kbd><span>Archivar (vuelve sola si hay actividad nueva)</span>
+    <kbd>n</kbd><span>Nota</span>
+    <kbd>r</kbd><span>Renombrar</span>
+    <kbd>c</kbd><span>Copiar <code>claude --resume</code></span>
+    <span><kbd>1</kbd> … <kbd>9</kbd></span><span>Cambiar de vista guardada</span>
+    <kbd>g</kbd><span>Alternar bandeja, tabla, tablero y archivos</span>
+    <span><kbd>←</kbd> <kbd>→</kbd></span><span>En el visor de archivos: anterior / siguiente</span>
+    <kbd>/</kbd><span>Buscar</span>
+    <kbd>h</kbd><span>Día: línea de tiempo, costo y resumen</span>
+    <kbd>e</kbd><span>Escribir una respuesta a la sesión elegida</span>
+    <span><kbd>/</kbd> + <kbd>Enter</kbd></span><span>Buscar en todas las conversaciones</span>
+    <kbd>,</kbd><span>Ajustes</span>
+    <kbd>Esc</kbd><span>Quitar selección / cerrar paneles</span>
+  </div>
+</dialog>
+
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>

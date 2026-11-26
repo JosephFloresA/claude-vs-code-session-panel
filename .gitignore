@@ -1,0 +1,12 @@
+node_modules/
+*.log
+*.tmp
+*.bak*
+.env
+.env.*
+# local list of forbidden words for scripts/check.mjs (your company, your user name...)
+.check-forbidden.txt
+# personal config never goes in the repo
+config.json
+Thumbs.db
+Desktop.ini

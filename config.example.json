@@ -1,0 +1,29 @@
+{
+  "$comment": "Todo es opcional: borra lo que no uses. Rutas con / o con \\\\ (JSON). Se aceptan %VARIABLES% y ~. Ubicación por defecto: %APPDATA%\\claude-session-panel\\config.json (o la variable PANEL_CONFIG).",
+
+  "port": 7820,
+  "profile": "default",
+
+  "workspaceRoots": [],
+  "deprioritizedRepos": [],
+  "stopwords": [],
+  "tags": { "types": ["proyectos-de-mejora", "entregas", "soporte", "gestion"], "groups": [], "groupsLabel": "Grupo" },
+
+  "dataDir": "%LOCALAPPDATA%/claude-session-panel",
+  "projectsDir": null,
+  "database": null,
+  "attachmentsDir": null,
+  "projectsHistory": true,
+
+  "scribe": { "enabled": true, "model": "haiku", "claudeExe": null, "cwd": null },
+
+  "vscode": { "exe": null, "workspace": null, "userDataDir": null, "label": "VS Code" },
+  "keyboard": true,
+
+  "azureDevOps": { "org": null },
+  "github": { "enabled": true },
+
+  "staleHours": 3,
+  "conflictHours": 24,
+  "permissionWaitSeconds": 120
+}

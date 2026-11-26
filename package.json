@@ -1,0 +1,19 @@
+{
+  "name": "claude-vs-code-session-panel",
+  "version": "0.1.0",
+  "description": "Local web panel to watch, triage and drive many Claude Code conversations open in VS Code, with per-project memory (project card + threads).",
+  "type": "module",
+  "license": "MIT",
+  "author": "Joseph Flores",
+  "repository": { "type": "git", "url": "https://github.com/JosephFloresA/claude-vs-code-session-panel.git" },
+  "engines": { "node": ">=22.5.0" },
+  "os": ["win32"],
+  "bin": { "claude-session-panel": "src/dashboard.mjs", "claude-sessions": "src/cli.mjs" },
+  "scripts": {
+    "start": "node src/dashboard.mjs",
+    "sessions": "node src/cli.mjs",
+    "test": "node --test \"test/*.test.mjs\"",
+    "check": "node scripts/check.mjs"
+  },
+  "files": ["src/", "tools/", "scripts/", "config.example.json", "README.md", "LICENSE", "CHANGELOG.md"]
+}
