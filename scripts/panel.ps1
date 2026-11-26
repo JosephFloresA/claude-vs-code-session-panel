@@ -132,8 +132,11 @@ function Install-StartupTask {
     $portArg = if ($passPort) { " -Port $Port" } else { "" }
     $arguments = '-ExecutionPolicy Bypass -WindowStyle Hidden -NoProfile -File "{0}" -Action Start{1}{2}' -f $PSCommandPath, $portArg, $cfgArg
     $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $arguments
-    $trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
-    $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
+    # The real account name (MACHINE\user, AzureAD\Name...). "$env:USERDOMAIN\$env:USERNAME" does not always map:
+    # over SSH, with long computer names (NetBIOS is truncated to 15 chars) or with Microsoft/Entra accounts.
+    $me = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+    $trigger = New-ScheduledTaskTrigger -AtLogOn -User $me
+    $principal = New-ScheduledTaskPrincipal -UserId $me -LogonType Interactive -RunLevel Limited
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
         -ExecutionTimeLimit ([TimeSpan]::Zero) -StartWhenAvailable
     Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal `
