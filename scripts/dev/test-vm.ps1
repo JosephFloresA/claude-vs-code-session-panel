@@ -25,6 +25,7 @@ param(
     [string]$BaseFolder = "",
     [string]$User = "tester",
     [string]$TimeZone = "UTC",
+    [string]$Resolution = "1600x900",
     # Multi-edition ISOs (the normal consumer one): which edition to install. Ignored for single-edition ISOs.
     [string]$Edition = "Windows 11 Pro",
     # Optional. Without a key a consumer ISO installs unactivated (fine for testing).
@@ -88,6 +89,10 @@ function New-TestVm {
     Invoke-VBox modifyvm $Name --memory $MemoryMB --cpus $Cpus --firmware efi --tpm-type 2.0 `
         --graphicscontroller vmsvga --vram 128 --nic1 nat --mouse usbtablet --usb-xhci on `
         --clipboard-mode bidirectional --drag-and-drop bidirectional --audio-enabled off | Out-Null
+
+    # With vmsvga the Guest Additions display driver (VBoxWddm, VBoxSVGA only) does not bind, so Windows keeps the
+    # basic display adapter: the firmware (GOP) resolution is the one it uses. Fixed size, no auto-resize.
+    Invoke-VBox setextradata $Name VBoxInternal2/EfiGraphicsResolution $Resolution | Out-Null
 
     $disk = Join-Path (Join-Path $BaseFolder $Name) "$Name.vdi"
     Invoke-VBox createmedium disk --filename $disk --size ($DiskGB * 1024) --variant Standard | Out-Null
