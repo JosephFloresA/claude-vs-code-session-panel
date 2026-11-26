@@ -83,8 +83,10 @@ function New-TestVm {
     $password = -join (1..14 | ForEach-Object { $chars | Get-Random }) + "!7"
 
     Invoke-VBox createvm --name $Name --ostype Windows11_64 --register --basefolder $BaseFolder | Out-Null
+    # vmsvga, not vboxsvga: with WSL2/Hyper-V active (VirtualBox on the Windows hypervisor) Windows 11 hung on a black
+    # screen after the first setup reboot with vboxsvga; with vmsvga it finished (verified 2026-11-26, build 26300).
     Invoke-VBox modifyvm $Name --memory $MemoryMB --cpus $Cpus --firmware efi --tpm-type 2.0 `
-        --graphicscontroller vboxsvga --vram 128 --nic1 nat --mouse usbtablet --usb-xhci on `
+        --graphicscontroller vmsvga --vram 128 --nic1 nat --mouse usbtablet --usb-xhci on `
         --clipboard-mode bidirectional --drag-and-drop bidirectional --audio-enabled off | Out-Null
 
     $disk = Join-Path (Join-Path $BaseFolder $Name) "$Name.vdi"
