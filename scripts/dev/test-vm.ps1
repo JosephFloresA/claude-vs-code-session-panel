@@ -11,7 +11,8 @@
 #
 # Requirements: VirtualBox 7.1+ and, if WSL2/Docker/Hyper-V are active, the Windows feature "Windows Hypervisor
 # Platform" (HypervisorPlatform) enabled. ISO: Windows 11 Enterprise evaluation (90 days, free) from the Microsoft
-# Evaluation Center. The guest user and its password are printed at the end of Create.
+# Evaluation Center, or the normal multi-edition ISO (installs -Edition, Pro by default, unactivated). The guest user
+# and its password are printed at the end of Create.
 
 param(
     [ValidateSet("Create", "Start", "Snapshot", "Reset", "Status", "Delete")]
@@ -23,7 +24,11 @@ param(
     [int]$DiskGB = 80,
     [string]$BaseFolder = "",
     [string]$User = "tester",
-    [string]$TimeZone = "UTC"
+    [string]$TimeZone = "UTC",
+    # Multi-edition ISOs (the normal consumer one): which edition to install. Ignored for single-edition ISOs.
+    [string]$Edition = "Windows 11 Pro",
+    # Optional. Without a key a consumer ISO installs unactivated (fine for testing).
+    [string]$ProductKey = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -33,7 +38,10 @@ if (-not $BaseFolder) { $BaseFolder = Join-Path $env:USERPROFILE "VirtualBox VMs
 $snapName = "clean-windows"
 
 function Invoke-VBox {
-    $out = & $vbox @args 2>&1
+    # VBoxManage writes progress bars to stderr: in Windows PowerShell 5.1 that is a terminating error under
+    # ErrorActionPreference=Stop, so only the exit code decides here.
+    $prev = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+    try { $out = & $vbox @args 2>&1 | ForEach-Object { "$_" } } finally { $ErrorActionPreference = $prev }
     if ($LASTEXITCODE -ne 0) { throw ("VBoxManage {0} failed:`n{1}" -f ($args -join " "), ($out | Out-String)) }
     return $out
 }
@@ -59,6 +67,18 @@ function New-TestVm {
     $country = if ($lang -match "-(\w\w)$") { $Matches[1].ToUpper() } else { "US" }
     Write-Host ("  ISO language: {0}" -f $lang) -ForegroundColor DarkGray
 
+    # Edition: ImageIndexN="Windows 11 Pro (10.0... / x64 / en-US)". Exact name, so "Pro" does not pick "Pro N".
+    $images = @($detect | Where-Object { $_ -match '^ImageIndex(\d+)="(.+?) \(' } | ForEach-Object {
+        if ($_ -match '^ImageIndex(\d+)="(.+?) \(') { [pscustomobject]@{ Index = [int]$Matches[1]; Name = $Matches[2] } } })
+    $imageArgs = @()
+    if ($images.Count -gt 1) {
+        $img = $images | Where-Object { $_.Name -eq $Edition } | Select-Object -First 1
+        if (-not $img) { throw ("Edition '{0}' not in the ISO. Available: {1}" -f $Edition, (($images | ForEach-Object Name) -join ", ")) }
+        $imageArgs = @("--image-index=$($img.Index)")
+        Write-Host ("  edition: {0} (index {1})" -f $img.Name, $img.Index) -ForegroundColor DarkGray
+    }
+    if ($ProductKey) { $imageArgs += "--key=$ProductKey" }
+
     $chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789".ToCharArray()
     $password = -join (1..14 | ForEach-Object { $chars | Get-Random }) + "!7"
 
@@ -79,7 +99,7 @@ function New-TestVm {
     try { Invoke-VBox modifynvram $Name secureboot --enable | Out-Null } catch { Write-Host "  (secureboot --enable not supported by this VirtualBox; keys are enrolled)" -ForegroundColor DarkGray }
 
     Invoke-VBox unattended install $Name "--iso=$Iso" "--user=$User" "--password=$password" "--full-user-name=$User" `
-        "--locale=$locale" "--country=$country" "--time-zone=$TimeZone" "--hostname=$Name.local" --install-additions | Out-Null
+        "--locale=$locale" "--country=$country" "--time-zone=$TimeZone" "--hostname=$Name.local" --install-additions @imageArgs | Out-Null
     Invoke-VBox startvm $Name --type gui | Out-Null
 
     Write-Host ""
@@ -109,9 +129,16 @@ switch ($Action) {
         & $vbox snapshot $Name list 2>$null
     }
     "Delete"   {
-        if (-not (Test-Vm)) { Write-Host "  VM '$Name' does not exist" -ForegroundColor DarkGray; break }
-        Stop-Vm
-        Invoke-VBox unregistervm $Name --delete | Out-Null
+        if (Test-Vm) { Stop-Vm; Invoke-VBox unregistervm $Name --delete | Out-Null }
+        # A disk left by an interrupted Create is registered but not attached: unregistervm does not remove it.
+        $vmDir = Join-Path $BaseFolder $Name
+        $disk = Join-Path $vmDir "$Name.vdi"
+        if (Test-Path -LiteralPath $disk) {
+            $prev = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+            & $vbox closemedium disk $disk --delete 2>&1 | Out-Null
+            $ErrorActionPreference = $prev
+        }
+        if (Test-Path -LiteralPath $vmDir) { Remove-Item -LiteralPath $vmDir -Recurse -Force }
         Write-Host "  VM '$Name' deleted" -ForegroundColor Green
     }
 }

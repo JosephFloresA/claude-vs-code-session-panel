@@ -7,7 +7,7 @@ todo lo que falla o confunde.
 
 1. VirtualBox 7.1+ (`winget install Oracle.VirtualBox`). Si usas WSL2, Docker o Hyper-V, activa además la
    característica de Windows **Plataforma del hipervisor de Windows** y reinicia.
-2. Descarga el ISO de **Windows 11 Enterprise (evaluación de 90 días)** desde el Microsoft Evaluation Center.
+2. Descarga un ISO de Windows 11: el normal de microsoft.com/software-download/windows11 (multi-edición; el script instala **Pro** sin clave, queda sin activar y no vence) o el de evaluación Enterprise (vence a los 90 días). Cualquier idioma: el script lo detecta.
 3. Crea la VM (instala Windows sola, 20–40 min):
    ```powershell
    powershell -ExecutionPolicy Bypass -File scripts\dev\test-vm.ps1 -Action Create -Iso C:\ruta\Win11_Eval.iso
