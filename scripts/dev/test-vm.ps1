@@ -114,10 +114,19 @@ switch ($Action) {
     "Create"   { New-TestVm }
     "Start"    { Invoke-VBox startvm $Name --type gui | Out-Null; Write-Host "  started" -ForegroundColor Green }
     "Snapshot" {
+        # Offline snapshot (disk only). A live snapshot (with RAM) hung forever under the Windows hypervisor
+        # (WSL2/Hyper-V active) and left an orphan differencing disk; offline is instant and Reset boots a fresh Windows.
+        if ((Get-VmState) -eq "running") {
+            Write-Host "  shutting Windows down (ACPI power button)..." -ForegroundColor DarkGray
+            & $vbox controlvm $Name acpipowerbutton 2>$null | Out-Null
+            $deadline = (Get-Date).AddMinutes(4)
+            while ((Get-VmState) -eq "running" -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 5 }
+            if ((Get-VmState) -eq "running") { throw "Windows did not shut down in 4 min. Shut it down from inside the VM (Start > Power > Shut down) and run Snapshot again." }
+        }
         $existing = & $vbox snapshot $Name list --machinereadable 2>$null
         if ($existing -match ('="{0}"' -f $snapName)) { Invoke-VBox snapshot $Name delete $snapName | Out-Null }
-        Invoke-VBox snapshot $Name take $snapName --description "Fresh Windows, nothing installed" --live | Out-Null
-        Write-Host "  snapshot '$snapName' saved" -ForegroundColor Green
+        Invoke-VBox snapshot $Name take $snapName --description "Fresh Windows, nothing installed" | Out-Null
+        Write-Host "  snapshot '$snapName' saved (VM powered off; use -Action Start or Reset)" -ForegroundColor Green
     }
     "Reset"    {
         Stop-Vm
