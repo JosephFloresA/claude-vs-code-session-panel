@@ -208,7 +208,7 @@ while ((Get-Date) -lt $deadline) {
         } | Sort-Object -Property @{ Expression = { $_.Name.Length } })
       }
       foreach ($opt in $Options) {
-        $cand = & $findOpt $els $opt
+        $cand = @(& $findOpt $els $opt)
         if ($cand.Count) { if (Invoke-El $cand[0].El $pr.MainWindowHandle) { $clicked += $cand[0].Name; Start-Sleep -Milliseconds 220 } }
       }
       if ($clicked.Count -eq 0) {
@@ -221,28 +221,28 @@ while ((Get-Date) -lt $deadline) {
       # Re-escanear y enviar (el "Submit answers" puede haberse habilitado al seleccionar).
       $submitRe = '(^|\s)Submit answers\s*$|Enviar respuestas'
       $findSubmit = { @(Named (@($win.FindAll($TS::Descendants, $OPT_COND))) | Where-Object { ($_.Name -match $submitRe) -and (Is-Actionable $_.El) -and -not $_.El.Current.IsOffscreen }) }
-      $submit2 = & $findSubmit
+      $submit2 = @(& $findSubmit)
       if ($submit2.Count) { [void](Invoke-El $submit2[0].El $pr.MainWindowHandle) }
       # Verify: the question is answered only if its "Submit answers" button is gone. UIA can report success and do
       # nothing, so if it is still there, repeat with real mouse clicks (option + submit) and check again.
       Start-Sleep -Milliseconds 900
       $how = 'uia'
-      if ((& $findSubmit).Count) {
+      if (@(& $findSubmit).Count) {
         $how = 'mouse'
         # Same container rule as above (never the off-screen history), re-read after the first attempt.
-        $box2 = $WALK.GetParent((& $findSubmit)[0].El)
+        $box2 = $WALK.GetParent(@(& $findSubmit)[0].El)
         for ($i = 0; $i -lt 4 -and $null -ne $box2 -and $box2.Current.ClassName -notlike 'permissionRequestContainer*'; $i++) { $box2 = $WALK.GetParent($box2) }
         if ($null -eq $box2) { $box2 = $box }
         $els2 = @(Named (@($box2.FindAll($TS::Descendants, [System.Windows.Automation.Condition]::TrueCondition))) | Where-Object { -not $_.El.Current.IsOffscreen })
         foreach ($opt in $Options) {
-          $cand = & $findOpt $els2 $opt
+          $cand = @(& $findOpt $els2 $opt)
           if ($cand.Count) { [void](Invoke-El $cand[0].El $pr.MainWindowHandle -ForceClick); Start-Sleep -Milliseconds 300 }
         }
-        $submit3 = & $findSubmit
+        $submit3 = @(& $findSubmit)
         if ($submit3.Count) { [void](Invoke-El $submit3[0].El $pr.MainWindowHandle -ForceClick) }
         Start-Sleep -Milliseconds 1200
       }
-      if ((& $findSubmit).Count) { Out-Result $false 'not_applied' @{ clicked = $clicked; how = $how; window = $pr.MainWindowTitle } }
+      if (@(& $findSubmit).Count) { Out-Result $false 'not_applied' @{ clicked = $clicked; how = $how; window = $pr.MainWindowTitle } }
       Out-Result $true 'chosen' @{ clicked = $clicked; submitted = $true; how = $how; window = $pr.MainWindowTitle }
     }
 
