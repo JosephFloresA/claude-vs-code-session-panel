@@ -117,6 +117,32 @@ function Stop-Panel {
     Write-Host ("  panel detenido (PID {0})" -f $listenerPid) -ForegroundColor Green
 }
 
+# Sending text to a chat focuses its input with Ctrl+Alt+Shift+F9 -> claude-vscode.focus. VS Code has no such
+# binding by default (the extension's own Ctrl+Esc needs an editor focused): without it the paste lands elsewhere
+# and the send ends in "not_confirmed" (found on a clean Windows 11 VM, 2026-11-26). Added once, with a backup.
+function Install-FocusKeybinding {
+    $kb = Join-Path $env:APPDATA "Code\User\keybindings.json"
+    $entry = '{ "key": "ctrl+alt+shift+f9", "command": "claude-vscode.focus" }'
+    if (Test-Path -LiteralPath $kb) {
+        $raw = [IO.File]::ReadAllText($kb)
+        if ($raw -match 'claude-vscode\.focus') { Write-Host "  atajo Ctrl+Alt+Shift+F9 -> claude-vscode.focus ya estaba" -ForegroundColor DarkGray; return }
+        $end = $raw.LastIndexOf("]")
+        if ($end -lt 0) { Write-Host "  no entendi $kb; agrega a mano: $entry" -ForegroundColor Yellow; return }
+        Copy-Item -LiteralPath $kb -Destination "$kb.bak-panel" -Force
+        # Last meaningful character before "]" (comments removed only for this check).
+        $before = ($raw.Substring(0, $end) -replace '(?s)/\*.*?\*/', '' -replace '(?m)//.*$', '').TrimEnd()
+        $sep = if ($before.EndsWith("[") -or $before.EndsWith(",")) { "" } else { "," }
+        $new = $raw.Substring(0, $end).TrimEnd() + "`r`n  // Panel de sesiones: enfoca el chat de Claude Code para enviarle texto.`r`n  $sep$entry`r`n" + $raw.Substring($end)
+        [IO.File]::WriteAllText($kb, $new, (New-Object Text.UTF8Encoding($false)))
+        Write-Host "  atajo agregado a $kb (respaldo: keybindings.json.bak-panel)" -ForegroundColor Green
+    } else {
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $kb) | Out-Null
+        $new = "[`r`n  // Panel de sesiones: enfoca el chat de Claude Code para enviarle texto.`r`n  $entry`r`n]`r`n"
+        [IO.File]::WriteAllText($kb, $new, (New-Object Text.UTF8Encoding($false)))
+        Write-Host "  creado $kb con el atajo Ctrl+Alt+Shift+F9 -> claude-vscode.focus" -ForegroundColor Green
+    }
+}
+
 function Initialize-Config {
     if (Test-Path -LiteralPath $configFile) { Write-Host ("  ya existe {0}" -f $configFile) -ForegroundColor Yellow }
     else {
@@ -156,8 +182,8 @@ if (-not (Test-Path -LiteralPath $logDir)) { New-Item -ItemType Directory -Path 
 
 Write-Host ("== Claude session panel - puerto {0} ==" -f $Port) -ForegroundColor Cyan
 switch ($Action) {
-    "Init"      { Initialize-Config }
-    "Install"   { Install-StartupTask; Start-Panel }
+    "Init"      { Install-FocusKeybinding; Initialize-Config }
+    "Install"   { Install-FocusKeybinding; Install-StartupTask; Start-Panel }
     "Uninstall" { Uninstall-StartupTask; Stop-Panel }
     "Stop"      { Stop-Panel }
     "Restart"   { Stop-Panel; Start-Panel }

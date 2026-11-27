@@ -39,5 +39,9 @@ Encontrado al probar desde cero en una VM con Windows 11 limpio (`scripts/dev/te
     opción y no la pulsaba.
   Ahora busca solo dentro del cuadro de la pregunta abierta, ignora lo que está fuera de pantalla, verifica que la
   pregunta se cerró, reintenta con clics reales y, si no se cierra, responde `not_applied` en vez de decir que funcionó.
+- Enviar texto a un chat necesita el atajo `Ctrl+Alt+Shift+F9 → claude-vscode.focus`, que nadie creaba (`not_confirmed`).
+  `panel.ps1 -Action Install`/`Init` lo agrega a `keybindings.json` con respaldo.
+- Los scripts lanzaban un enlace `vscode://` (un `Code.exe` nuevo) cada ~1 s mientras no encontraban la pestaña; ahora como
+  máximo 3 por acción. Nuevo `scripts/reiniciar-vscode.ps1` para el VS Code «fantasma» (ver `docs/problemas-conocidos.md`).
 - El escribano no encontraba el CLI `claude` en equipos que solo tienen la extensión de VS Code: ahora usa también el
   binario que trae la extensión. `/api/diagnostico` informa `scribe_cli` y `scribe_cli_found`.

@@ -104,7 +104,10 @@ function Find-Win {
   return [IntPtr]::Zero
 }
 $canActivate = ($Session -match '^[0-9a-fA-F-]{36}$')
-function Invoke-Activate { if ($canActivate) { try { Start-Process "vscode://anthropic.claude-code/open?session=$Session" | Out-Null } catch {} } }
+# Each vscode:// link launches a new Code.exe that hands the URI to the running instance. Unbounded retries every
+# second (when the tab was not found) spawned a burst of Code.exe processes; capped at 3 per call.
+$script:activations = 0
+function Invoke-Activate { if ($canActivate -and $script:activations -lt 3) { $script:activations++; try { Start-Process "vscode://anthropic.claude-code/open?session=$Session" | Out-Null } catch {} } }
 $anyCode = { @(Get-Process -Name 'Code' -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 }).Count -gt 0 }
 
 # Primer empujon: activar la pestaña correcta (aunque VS Code no este al frente, el URI la deja como activa).

@@ -153,7 +153,9 @@ function Invoke-El($el, $hwnd, [switch]$ForceClick) {
 # Activa (o re-activa) la pestaña de la sesion por el URI de la extension. NO depende del foco: VS Code procesa
 # el URI aunque este en segundo plano, y deja esa conversacion como pestaña activa (su titulo pasa a coincidir).
 $canActivate = (-not $Dump) -and ($Session -match '^[0-9a-fA-F-]{36}$')
-function Invoke-Activate { if ($canActivate) { try { Start-Process "vscode://anthropic.claude-code/open?session=$Session" | Out-Null } catch {} } }
+# Each vscode:// link launches a new Code.exe that hands the URI over; capped at 3 per call (see enviar.ps1).
+$script:activations = 0
+function Invoke-Activate { if ($canActivate -and $script:activations -lt 3) { $script:activations++; try { Start-Process "vscode://anthropic.claude-code/open?session=$Session" | Out-Null } catch {} } }
 
 $deadline = (Get-Date).AddMilliseconds($TimeoutMs)
 $lastReason = 'no_vscode'
