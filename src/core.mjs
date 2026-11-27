@@ -508,6 +508,7 @@ export function collectSessions({ hours = 12, includeArchived = false, staleHour
       .filter(Boolean).sort((a, b) => ms(b) - ms(a))[0] ?? tr?.transcript_mtime ?? null;
     const state = deriveState(l, h, tr, lastActivity, staleHours);
     const realCwd = tr?.cwd ?? cwd;
+    learnFromCwd(realCwd);   // tambien de las transcripciones (no solo de los procesos vivos)
     const m = metas.get(id) ?? null;
     // Archivar es "no me la muestres hasta que pase algo nuevo".
     const archived = !!m?.archived_at && ms(lastActivity) <= ms(m.archived_at) + 5000;

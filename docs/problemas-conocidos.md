@@ -62,3 +62,10 @@ compatible («tortuga»). Funciona, pero más lento. Por eso el script usa video
 Windows 11 quedó en pantalla negra), resolución fija por firmware y snapshots con la VM apagada (el snapshot en vivo se
 colgó). Si la integridad de memoria (aislamiento del núcleo) está activa, el hipervisor sigue encendido aunque
 `hypervisorlaunchtype` esté en `Off`.
+
+## Los choques no ven ediciones hechas con comandos de terminal
+
+El panel detecta que dos sesiones editan el mismo archivo por las herramientas de edición de Claude (Edit, Write,
+MultiEdit, NotebookEdit). Si Claude cambia un archivo con PowerShell o bash (algo frecuente en Windows), ese cambio no
+queda registrado como edición y no genera choque. Es una limitación de diseño: deducir qué archivos toca un comando
+arbitrario no es fiable.

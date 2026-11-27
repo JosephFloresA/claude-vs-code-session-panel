@@ -43,5 +43,10 @@ Encontrado al probar desde cero en una VM con Windows 11 limpio (`scripts/dev/te
   `panel.ps1 -Action Install`/`Init` lo agrega a `keybindings.json` con respaldo.
 - Los scripts lanzaban un enlace `vscode://` (un `Code.exe` nuevo) cada ~1 s mientras no encontraban la pestaña; ahora como
   máximo 3 por acción. Nuevo `scripts/reiniciar-vscode.ps1` para el VS Code «fantasma» (ver `docs/problemas-conocidos.md`).
+- Abrir un chat nuevo con prompt desde el panel no lo enviaba si VS Code no tenía una carpeta abierta (el título de la
+  ventana no trae la carpeta). El patrón del título ahora la acepta opcional.
+- `/api/choques` no reportaba dos sesiones editando el mismo archivo si estaba fuera de las raíces de trabajo (sesiones
+  iniciadas en la carpeta de usuario). Ahora el choque por archivo se reporta siempre, y las raíces también se aprenden
+  de la carpeta de cada transcripción.
 - El escribano no encontraba el CLI `claude` en equipos que solo tienen la extensión de VS Code: ahora usa también el
   binario que trae la extensión. `/api/diagnostico` informa `scribe_cli` y `scribe_cli_found`.

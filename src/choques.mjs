@@ -39,12 +39,15 @@ export function detectarChoques(sessions, { horas = CHOQUE_HORAS, ruta = null } 
     if (s.state === "cerrada") continue;
     for (const e of s.edited_files ?? []) {
       if (e.at && Date.parse(e.at) < limite) continue;
-      const r = repoDe(e.file);
-      if (!r || enFlujos(e.file)) continue;
+      if (!e.file || enFlujos(e.file)) continue;
+      // Same file = clash even outside the workspace roots (sessions started in the home folder teach no root:
+      // found on a clean VM). Outside the roots it is named "<folder>/<file>" and there is no repo-level clash.
+      const located = repoDe(e.file);
+      const r = located ?? { repo: path.basename(path.dirname(e.file)), rel: path.basename(e.file) };
       const k = e.file.toLowerCase().replace(/\\/g, "/");
       if (!porArchivo.has(k)) porArchivo.set(k, { file: `${r.repo}/${r.rel}`, sesiones: new Map() });
       porArchivo.get(k).sesiones.set(s.session_id, s);
-      if (!s.pid) continue;
+      if (!s.pid || !located) continue;
       if (!porRepo.has(r.repo)) porRepo.set(r.repo, new Map());
       const m = porRepo.get(r.repo);
       if (!m.has(s.session_id)) m.set(s.session_id, { s, archivos: [] });

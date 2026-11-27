@@ -48,6 +48,19 @@ test("workspace: locate, shortPath and repo names inside text in any slash style
   assert.equal(W.repoDir("../etc"), null);
 });
 
+test("choques: same file outside every root is still a file clash (no repo clash)", async () => {
+  const { detectarChoques } = await import("../src/choques.mjs");
+  const now = new Date().toISOString();
+  const f = path.join(TMP, "outside", "notes.txt").toLowerCase();
+  const S = [
+    { session_id: "1", state: "esperando", pid: 1, edited_files: [{ file: f, at: now }] },
+    { session_id: "2", state: "trabajando", pid: 2, edited_files: [{ file: f, at: now }] },
+  ];
+  const c = detectarChoques(S);
+  assert.deepEqual(c.map((x) => [x.nivel, x.file, x.sesiones.length]), [["archivo", "outside/notes.txt", 2]]);
+  assert.equal(detectarChoques(S, { ruta: "outside/notes.txt" }).length, 1, "the pre-edit check by path finds it");
+});
+
 test("workspace: gitRootOf walks up to the nearest .git", () => {
   const deep = path.join(ROOT, "api", "a", "b");
   fs.mkdirSync(deep, { recursive: true });
