@@ -341,7 +341,8 @@ async function chooseOption(r, label) {
   const res = await sent;
   if (res.ok) { toast(`Elegido: ${label}`, "check"); setTimeout(load, 1500); }
   else {
-    const why = { no_dialog: "no vi el diálogo de preferencias", title_mismatch: "VS Code mostró otra pestaña", no_button: "no encontré esa opción" }[res.reason] ?? `no se pudo (${res.reason})`;
+    const why = { no_dialog: "no vi el diálogo de preferencias", title_mismatch: "VS Code mostró otra pestaña", no_button: "no encontré esa opción",
+      not_applied: "hice clic pero la pregunta sigue abierta" }[res.reason] ?? `no se pudo (${res.reason})`;
     toast(`${why}: elígela en VS Code`, "alert");
   }
 }

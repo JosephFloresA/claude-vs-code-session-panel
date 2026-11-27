@@ -123,12 +123,13 @@ function Is-Actionable($el) {
   return $false
 }
 
-function Invoke-El($el, $hwnd) {
+function Invoke-El($el, $hwnd, [switch]$ForceClick) {
   # The VS Code webview sometimes throws "Unrecognized error" (E_FAIL) on InvokePattern.Invoke() for an option that
-  # is perfectly clickable (seen on a clean Windows 11 VM, 2026-11-26). Each pattern is tried inside try/catch and,
-  # if none works, it falls back to a real mouse click on the element's centre.
+  # is perfectly clickable, and sometimes Invoke() returns without doing anything (seen on a clean Windows 11 VM,
+  # 2026-11-26). Each pattern is tried inside try/catch and, if none works (or -ForceClick), it does a real mouse
+  # click on the element's centre. Callers that can check the effect retry with -ForceClick.
   $cur = $el
-  for ($i = 0; $i -lt 4 -and $null -ne $cur; $i++) {
+  for ($i = 0; $i -lt 4 -and $null -ne $cur -and -not $ForceClick; $i++) {
     $p = $null
     if ($cur.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern, [ref]$p)) {
       try { ([System.Windows.Automation.InvokePattern]$p).Invoke(); return 'invoke' } catch { }
@@ -186,8 +187,9 @@ while ((Get-Date) -lt $deadline) {
       $submit = @($els | Where-Object { ($_.Name -match 'Submit answers|Enviar respuestas') -and (Is-Actionable $_.El) })
       if ($submit.Count -eq 0) { $lastReason = 'no_dialog'; continue }   # sin "Submit answers" accionable no es un AskUserQuestion
       $clicked = @()
-      foreach ($opt in $Options) {
-        $cand = @($els | Where-Object {
+      $findOpt = {
+        param($all, $opt)
+        @($all | Where-Object {
           $nm = $_.Name.Trim()
           ($nm -notmatch 'Submit answers') -and (Is-Actionable $_.El) -and (
             $nm -ieq $opt -or
@@ -196,6 +198,9 @@ while ((Get-Date) -lt $deadline) {
             $nm -match ('(^|\s)' + [regex]::Escape($opt) + '($|\s)')
           )
         } | Sort-Object -Property @{ Expression = { $_.Name.Length } })
+      }
+      foreach ($opt in $Options) {
+        $cand = & $findOpt $els $opt
         if ($cand.Count) { if (Invoke-El $cand[0].El $pr.MainWindowHandle) { $clicked += $cand[0].Name; Start-Sleep -Milliseconds 220 } }
       }
       if ($clicked.Count -eq 0) {
@@ -206,10 +211,27 @@ while ((Get-Date) -lt $deadline) {
       if ($DryRun) { Out-Result $true 'dry_run' @{ mode = 'choice'; clicked = $clicked; window = $pr.MainWindowTitle } }
       Start-Sleep -Milliseconds 200
       # Re-escanear y enviar (el "Submit answers" puede haberse habilitado al seleccionar).
-      $submit2 = @(Named (@($win.FindAll($TS::Descendants, $OPT_COND))) | Where-Object { ($_.Name -match '(^|\s)Submit answers\s*$|Enviar respuestas') -and (Is-Actionable $_.El) })
-      $sent = $false
-      if ($submit2.Count) { if (Invoke-El $submit2[0].El $pr.MainWindowHandle) { $sent = $true } }
-      Out-Result $true 'chosen' @{ clicked = $clicked; submitted = $sent; window = $pr.MainWindowTitle }
+      $submitRe = '(^|\s)Submit answers\s*$|Enviar respuestas'
+      $findSubmit = { @(Named (@($win.FindAll($TS::Descendants, $OPT_COND))) | Where-Object { ($_.Name -match $submitRe) -and (Is-Actionable $_.El) }) }
+      $submit2 = & $findSubmit
+      if ($submit2.Count) { [void](Invoke-El $submit2[0].El $pr.MainWindowHandle) }
+      # Verify: the question is answered only if its "Submit answers" button is gone. UIA can report success and do
+      # nothing, so if it is still there, repeat with real mouse clicks (option + submit) and check again.
+      Start-Sleep -Milliseconds 900
+      $how = 'uia'
+      if ((& $findSubmit).Count) {
+        $how = 'mouse'
+        $els2 = Named (@($win.FindAll($TS::Descendants, $OPT_COND)))
+        foreach ($opt in $Options) {
+          $cand = & $findOpt $els2 $opt
+          if ($cand.Count) { [void](Invoke-El $cand[0].El $pr.MainWindowHandle -ForceClick); Start-Sleep -Milliseconds 300 }
+        }
+        $submit3 = & $findSubmit
+        if ($submit3.Count) { [void](Invoke-El $submit3[0].El $pr.MainWindowHandle -ForceClick) }
+        Start-Sleep -Milliseconds 1200
+      }
+      if ((& $findSubmit).Count) { Out-Result $false 'not_applied' @{ clicked = $clicked; how = $how; window = $pr.MainWindowTitle } }
+      Out-Result $true 'chosen' @{ clicked = $clicked; submitted = $true; how = $how; window = $pr.MainWindowTitle }
     }
 
     # Botones del dialogo: filtro nativo de UIA (ControlType = Button). Una sola pasada, rapida.
