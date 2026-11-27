@@ -107,10 +107,32 @@ export const ADJUNTOS = {
 
 // ---------- scribe (keeps thread logs up to date with a cheap model) ----------
 const scribe = sub("scribe");
-const defaultClaude = (() => {
-  const p = path.join(os.homedir(), ".local", "bin", IS_WIN ? "claude.exe" : "claude");
-  return fs.existsSync(p) ? p : "claude";
-})();
+/**
+ * The `claude` CLI the scribe runs: the native install (~/.local/bin), then PATH, then the binary bundled with the
+ * newest VS Code extension. Someone who only installed the extension has no `claude` on PATH (found on a clean
+ * Windows 11 VM, 2026-11-26): without the last step the scribe stayed "on" but could never run.
+ */
+function findClaude() {
+  const exe = IS_WIN ? "claude.exe" : "claude";
+  const native = path.join(os.homedir(), ".local", "bin", exe);
+  if (fs.existsSync(native)) return native;
+  for (const dir of (process.env.PATH ?? "").split(path.delimiter).filter(Boolean)) {
+    const p = path.join(dir, exe);
+    if (fs.existsSync(p)) return p;
+  }
+  for (const base of [".vscode", ".vscode-insiders", ".cursor"]) {
+    const extDir = path.join(os.homedir(), base, "extensions");
+    let names = [];
+    try { names = fs.readdirSync(extDir).filter((n) => n.toLowerCase().startsWith("anthropic.claude-code-")); } catch { continue; }
+    names.sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+    for (const n of names) {
+      const p = path.join(extDir, n, "resources", "native-binary", exe);
+      if (fs.existsSync(p)) return p;
+    }
+  }
+  return null;
+}
+const defaultClaude = findClaude() ?? "claude";
 export const ESCRIBA = {
   on: pick(envBool(env("SCRIBE")), scribe.enabled, true),
   model: String(pick(env("SCRIBE_MODEL"), scribe.model, "haiku")),
@@ -166,7 +188,8 @@ export function describeConfig() {
   return {
     config_file: CONFIG_FILE, config_file_found: fs.existsSync(CONFIG_FILE), profile: PROFILE, port: PORT,
     claude_home: CLAUDE_HOME, workspace_roots: WORKSPACE_ROOTS, data_dir: DATA_DIR, database: DB_PATH,
-    projects_dir: FLUJOS_DIR, scribe: ESCRIBA.on ? ESCRIBA.model : false, keyboard: TECLADO_ON,
+    projects_dir: FLUJOS_DIR, scribe: ESCRIBA.on ? ESCRIBA.model : false,
+    scribe_cli: ESCRIBA.claude, scribe_cli_found: ESCRIBA.claude !== "claude" && fs.existsSync(ESCRIBA.claude), keyboard: TECLADO_ON,
     azure_devops: ADO_ORG, github: GITHUB_ON, vscode: VSCODE.exe,
   };
 }
