@@ -23,7 +23,13 @@ Code se retoman desde su historial. Equivale a forzar el cierre de la tarea en e
 | 16:24–16:26 y 16:39–16:41 | El panel intentó aprobar y enviar. Cada intento abre enlaces `vscode://…`, y cada enlace lanza un `Code.exe` nuevo que entrega el enlace a la instancia abierta (en `%APPDATA%\Code\logs` queda una carpeta vacía por cada uno: 11 en total). Cuando no encontraba la pestaña, reintentaba cada ~1,2 s durante todo el intento. |
 | 16:41 | Último envío: encontró la ventana, pero sin el atajo `Ctrl+Alt+Shift+F9` configurado el texto no llegó al chat (`not_confirmed`). |
 | 16:41–16:46 | La ventana original desapareció. A las 16:46 no había ningún VS Code en la barra de tareas. |
-| 16:50:11 | Arrancó una instancia principal nueva (todos los `Code.exe` con esa hora, con `main.log`), con la extensión de Claude conectada, **pero sin ninguna ventana**. |
+| 16:50:11 | Arrancó una instancia principal nueva de VS Code (todos los `Code.exe` tienen esa hora y hay un `main.log` nuevo), con su ventana. |
+
+Además, los enlaces repetidos abrieron varias pestañas «Claude Code» vacías en VS Code.
+
+> Ojo al diagnosticar por SSH o desde un servicio: Windows no deja ver las ventanas de otra sesión, así que ahí
+> `Get-Process Code` muestra `MainWindowHandle = 0` aunque la ventana exista. Hay que mirarlo desde el escritorio (una
+> tarea programada interactiva) o con una captura de pantalla.
 
 **Causa.** No confirmada. Ningún script del panel oculta ni cierra ventanas (solo restauran y traen al frente) ni manda
 `Alt+F4`, `Ctrl+W` o `Esc`. El mismo síntoma también le ocurre a la persona usuaria sin pruebas de por medio. Hipótesis:
