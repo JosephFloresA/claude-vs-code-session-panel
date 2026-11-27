@@ -153,7 +153,9 @@ export const VSCODE = {
   workspace: pick(resolvePath(env("VSCODE_WORKSPACE")), resolvePath(vs.workspace)),
   // Title of the window with a NEW chat focused (the tab is still called "Claude Code"). Enter is only pressed
   // when the window in front matches this.
-  titleRe: String(pick(vs.titlePattern, "^Claude Code - .+ - Visual Studio Code$")),
+  // The folder part is optional: with no folder open VS Code titles the window "Claude Code - Visual Studio Code"
+  // (found on a clean VM: the new chat opened but its prompt was never sent, send_reason no_window).
+  titleRe: String(pick(vs.titlePattern, "^Claude Code( - .+)? - Visual Studio Code( - Insiders)?$")),
 };
 
 // Keyboard / UI Automation on existing tabs (send text, approve permissions, auto-accept). Windows only.

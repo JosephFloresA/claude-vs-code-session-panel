@@ -5,7 +5,7 @@
 .DESCRIPTION
   El panel abre vscode://anthropic.claude-code/open?prompt=... (flujos/abrir.mjs). La extension
   carga el texto pero no lo envia. Este script:
-    1. Busca la ventana cuyo titulo calza con -TitlePattern (regex; por defecto el del lab). Un chat nuevo se
+    1. Busca la ventana cuyo titulo calza con -TitlePattern (regex; el panel pasa config.vscode.titlePattern). Un chat nuevo se
        titula "Claude Code" hasta que la IA le pone nombre, asi que solo una ventana con un chat nuevo enfocado calza.
     2. La trae al frente, espera a que el cuadro de texto tenga el prompt y vuelve a comprobar el titulo.
     3. Pulsa Enter cada ~1,5 s mientras la ventana siga siendo ese chat nuevo, hasta que el chat pasa a
@@ -14,7 +14,7 @@
   Salida: JSON {ok, reason, window}. Razones: sent, no_window, focus_lost, not_confirmed.
 #>
 param([int]$TimeoutMs = 20000, [int]$SettleMs = 1200, [int]$SendWindowMs = 15000,
-      [string]$TitlePattern = '^Claude Code - lab \(Workspace\) - Visual Studio Code$')
+      [string]$TitlePattern = '^Claude Code( - .+)? - Visual Studio Code( - Insiders)?$')
 $ErrorActionPreference = "Stop"
 function Out-Result($ok, $reason, $window) { @{ ok = $ok; reason = $reason; window = $window } | ConvertTo-Json -Compress; exit 0 }
 
