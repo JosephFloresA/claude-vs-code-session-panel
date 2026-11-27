@@ -4,6 +4,8 @@ Panel web local para seguir, priorizar y manejar muchas conversaciones de **Clau
 **VS Code** a la vez, con una memoria por proyecto (ficha + hilos) que permite retomar trabajo en un chat
 nuevo sin reabrir conversaciones gigantes.
 
+**¿Primera vez?** Empieza por la [guía de uso](docs/guia-de-uso.md): qué es, cómo instalarlo y cómo usarlo en el día a día.
+
 > **English summary.** A local (127.0.0.1-only) web panel for people who run many Claude Code conversations
 > in VS Code at once: an inbox of sessions that need you, clash detection when two sessions edit the same
 > repo, git/PR status, full-text search across transcripts, previews of generated files, and per-project
