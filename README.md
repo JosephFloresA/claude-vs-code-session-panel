@@ -51,7 +51,11 @@ powershell -ExecutionPolicy Bypass -File scripts\panel.ps1 -Action Install
 ```
 
 El panel queda en <http://127.0.0.1:7820/>. Otras acciones: `Status`, `Stop`, `Restart`, `Uninstall`.
-Los logs quedan en `%LOCALAPPDATA%\claude-session-panel\logs`.
+Los logs quedan en `%LOCALAPPDATA%\claude-session-panel\logs`. `Install` también agrega a VS Code el atajo
+`Ctrl+Alt+Shift+F9 → claude-vscode.focus`, que el panel usa para escribir en un chat (respalda antes `keybindings.json`).
+
+Si algo falla, revisa [docs/problemas-conocidos.md](docs/problemas-conocidos.md). Por ejemplo, el VS Code «fantasma»
+(procesos vivos sin ventana) se arregla con `scripts\reiniciar-vscode.ps1`.
 
 Desde la terminal también hay un resumen sin abrir el navegador:
 
