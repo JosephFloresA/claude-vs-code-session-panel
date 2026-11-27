@@ -1,0 +1,41 @@
+name: Reportar un error
+description: Algo no funciona como dice la guía
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por reportar. Con estos datos casi siempre se puede reproducir el problema.
+        **No pegues texto de tus conversaciones** si tiene información privada.
+  - type: textarea
+    id: que
+    attributes:
+      label: Qué hiciste
+      description: Los pasos, por ejemplo «en la Bandeja elegí la opción X de una pregunta».
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: Qué esperabas y qué pasó
+      description: Incluye el aviso que mostró el panel abajo, si apareció.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versiones
+      description: Panel (abre http://127.0.0.1:7820/api/diagnostico y copia "version"), extensión Claude Code y Windows.
+      placeholder: "panel 0.1.0 · Claude Code 2.1.332 · Windows 11"
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostico
+    attributes:
+      label: Diagnóstico
+      description: |
+        El contenido de http://127.0.0.1:7820/api/diagnostico y las últimas líneas de:
+        - `%LOCALAPPDATA%\claude-session-panel\logs\panel-7820.err.log`
+        - `%TEMP%\monitor-aprobar.log` (si el problema es aprobar, elegir o enviar)
+        Revisa que no tengan rutas o nombres que no quieras publicar.
+      render: text

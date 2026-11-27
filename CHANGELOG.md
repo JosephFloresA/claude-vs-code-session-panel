@@ -4,7 +4,8 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 
 ## [0.1.0] - 2026-11-26
 
-Primera versión como repositorio propio (antes vivía dentro de un repo de gestión personal).
+Primera versión pública, **beta**. Probada en Windows 11 limpio con la extensión Claude Code 2.1.332.
+Antes vivía dentro de un repo de gestión personal.
 
 ### Agregado
 - Configuración única (`config.json` + variables `PANEL_*`), con `config.example.json` y `/api/diagnostico`.

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Guía de uso
+    url: https://github.com/JosephFloresA/claude-vs-code-session-panel/blob/main/docs/guia-de-uso.md
+    about: Antes de reportar, revisa la guía y los problemas conocidos.
+  - name: Problemas conocidos
+    url: https://github.com/JosephFloresA/claude-vs-code-session-panel/blob/main/docs/problemas-conocidos.md
+    about: VS Code «fantasma», envío que no llega y otros casos con su solución.

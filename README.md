@@ -6,6 +6,13 @@ nuevo sin reabrir conversaciones gigantes.
 
 **¿Primera vez?** Empieza por la [guía de uso](docs/guia-de-uso.md): qué es, cómo instalarlo y cómo usarlo en el día a día.
 
+> [!WARNING]
+> **Beta y no oficial.** Proyecto personal, sin relación con Anthropic. «Claude» y «Claude Code» son marcas de
+> Anthropic. El panel se apoya en detalles internos de la extensión Claude Code y de VS Code (archivos de `~/.claude`,
+> textos y estructura de su interfaz) que pueden cambiar sin aviso: una actualización puede romper aprobar o enviar.
+> Probado con la extensión **Claude Code 2.1.332**, VS Code en Windows 11 y Node 22, 24 y 26.
+> Si algo falla, [abre un reporte](https://github.com/JosephFloresA/claude-vs-code-session-panel/issues/new/choose).
+
 > **English summary.** A local (127.0.0.1-only) web panel for people who run many Claude Code conversations
 > in VS Code at once: an inbox of sessions that need you, clash detection when two sessions edit the same
 > repo, git/PR status, full-text search across transcripts, previews of generated files, and per-project

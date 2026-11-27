@@ -3,6 +3,11 @@
 Para quien usa Claude Code en VS Code y nunca vio el panel. En 10 minutos sabrás qué es, cómo instalarlo y cómo
 sacarle provecho en el día a día.
 
+> **Beta y no oficial.** Es un proyecto personal, sin relación con Anthropic. Depende de detalles internos de Claude
+> Code y de VS Code, así que una actualización de la extensión puede romper alguna función (sobre todo aprobar y
+> enviar). Si te pasa, [repórtalo](https://github.com/JosephFloresA/claude-vs-code-session-panel/issues/new/choose): es
+> la forma de que mejore.
+
 ## Qué es, en una frase
 
 Una página en tu navegador (`http://127.0.0.1:7820`) que muestra **todas tus conversaciones de Claude Code a la vez**:
