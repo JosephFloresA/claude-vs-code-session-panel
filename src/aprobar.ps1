@@ -124,13 +124,20 @@ function Is-Actionable($el) {
 }
 
 function Invoke-El($el, $hwnd) {
+  # The VS Code webview sometimes throws "Unrecognized error" (E_FAIL) on InvokePattern.Invoke() for an option that
+  # is perfectly clickable (seen on a clean Windows 11 VM, 2026-11-26). Each pattern is tried inside try/catch and,
+  # if none works, it falls back to a real mouse click on the element's centre.
   $cur = $el
   for ($i = 0; $i -lt 4 -and $null -ne $cur; $i++) {
     $p = $null
-    if ($cur.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern, [ref]$p)) { ([System.Windows.Automation.InvokePattern]$p).Invoke(); return 'invoke' }
+    if ($cur.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern, [ref]$p)) {
+      try { ([System.Windows.Automation.InvokePattern]$p).Invoke(); return 'invoke' } catch { }
+    }
     $s = $null
-    if ($cur.TryGetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern, [ref]$s)) { ([System.Windows.Automation.SelectionItemPattern]$s).Select(); return 'select' }
-    $cur = $WALK.GetParent($cur)
+    if ($cur.TryGetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern, [ref]$s)) {
+      try { ([System.Windows.Automation.SelectionItemPattern]$s).Select(); return 'select' } catch { }
+    }
+    try { $cur = $WALK.GetParent($cur) } catch { $cur = $null }
   }
   $r = $el.Current.BoundingRectangle
   if (-not $r.IsEmpty -and $r.Width -gt 0 -and $r.Height -gt 0) {
