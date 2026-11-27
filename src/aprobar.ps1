@@ -141,7 +141,8 @@ function Invoke-El($el, $hwnd, [switch]$ForceClick) {
     try { $cur = $WALK.GetParent($cur) } catch { $cur = $null }
   }
   $r = $el.Current.BoundingRectangle
-  if (-not $r.IsEmpty -and $r.Width -gt 0 -and $r.Height -gt 0) {
+  # Never a mouse click on something off screen (e.g. chat history scrolled away: negative coordinates).
+  if (-not $r.IsEmpty -and $r.Width -gt 0 -and $r.Height -gt 0 -and -not $el.Current.IsOffscreen) {
     if ($hwnd -ne [IntPtr]::Zero) { [void][MClk]::SetForegroundWindow($hwnd); Start-Sleep -Milliseconds 120 }
     $cx = [int][Math]::Round($r.Left + ($r.Width / 2.0)); $cy = [int][Math]::Round($r.Top + ($r.Height / 2.0))
     [MClk]::ClickAt($cx, $cy); return 'click'
@@ -183,9 +184,16 @@ while ((Get-Date) -lt $deadline) {
     # ---- AskUserQuestion (preferencias): elegir opcion(es) y pulsar "Submit answers" ----
     if ($Options.Count -gt 0) {
       # Las opciones pueden ser radio/listitem/checkbox, no solo Button: se busca en tipos amplios y accionables.
-      $els = Named (@($win.FindAll($TS::Descendants, $OPT_COND)))
-      $submit = @($els | Where-Object { ($_.Name -match 'Submit answers|Enviar respuestas') -and (Is-Actionable $_.El) })
+      $winEls = Named (@($win.FindAll($TS::Descendants, $OPT_COND)))
+      $submit = @($winEls | Where-Object { ($_.Name -match 'Submit answers|Enviar respuestas') -and (Is-Actionable $_.El) -and -not $_.El.Current.IsOffscreen })
       if ($submit.Count -eq 0) { $lastReason = 'no_dialog'; continue }   # sin "Submit answers" accionable no es un AskUserQuestion
+      # Only the OPEN question: its options live in the same container as "Submit answers"
+      # (class permissionRequestContainer_*). Answered questions in the chat history are RadioButtons too, with the
+      # same kind of names but off screen: matching the whole window clicked those and nothing happened.
+      $box = $WALK.GetParent($submit[0].El)
+      for ($i = 0; $i -lt 4 -and $null -ne $box -and $box.Current.ClassName -notlike 'permissionRequestContainer*'; $i++) { $box = $WALK.GetParent($box) }
+      if ($null -eq $box) { $box = $WALK.GetParent($submit[0].El) }
+      $els = @(Named (@($box.FindAll($TS::Descendants, [System.Windows.Automation.Condition]::TrueCondition))) | Where-Object { -not $_.El.Current.IsOffscreen })
       $clicked = @()
       $findOpt = {
         param($all, $opt)
@@ -212,7 +220,7 @@ while ((Get-Date) -lt $deadline) {
       Start-Sleep -Milliseconds 200
       # Re-escanear y enviar (el "Submit answers" puede haberse habilitado al seleccionar).
       $submitRe = '(^|\s)Submit answers\s*$|Enviar respuestas'
-      $findSubmit = { @(Named (@($win.FindAll($TS::Descendants, $OPT_COND))) | Where-Object { ($_.Name -match $submitRe) -and (Is-Actionable $_.El) }) }
+      $findSubmit = { @(Named (@($win.FindAll($TS::Descendants, $OPT_COND))) | Where-Object { ($_.Name -match $submitRe) -and (Is-Actionable $_.El) -and -not $_.El.Current.IsOffscreen }) }
       $submit2 = & $findSubmit
       if ($submit2.Count) { [void](Invoke-El $submit2[0].El $pr.MainWindowHandle) }
       # Verify: the question is answered only if its "Submit answers" button is gone. UIA can report success and do
@@ -221,7 +229,11 @@ while ((Get-Date) -lt $deadline) {
       $how = 'uia'
       if ((& $findSubmit).Count) {
         $how = 'mouse'
-        $els2 = Named (@($win.FindAll($TS::Descendants, $OPT_COND)))
+        # Same container rule as above (never the off-screen history), re-read after the first attempt.
+        $box2 = $WALK.GetParent((& $findSubmit)[0].El)
+        for ($i = 0; $i -lt 4 -and $null -ne $box2 -and $box2.Current.ClassName -notlike 'permissionRequestContainer*'; $i++) { $box2 = $WALK.GetParent($box2) }
+        if ($null -eq $box2) { $box2 = $box }
+        $els2 = @(Named (@($box2.FindAll($TS::Descendants, [System.Windows.Automation.Condition]::TrueCondition))) | Where-Object { -not $_.El.Current.IsOffscreen })
         foreach ($opt in $Options) {
           $cand = & $findOpt $els2 $opt
           if ($cand.Count) { [void](Invoke-El $cand[0].El $pr.MainWindowHandle -ForceClick); Start-Sleep -Milliseconds 300 }
