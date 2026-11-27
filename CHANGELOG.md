@@ -27,3 +27,17 @@ Primera versión como repositorio propio (antes vivía dentro de un repo de gest
 ### Corregido
 - `aprobar.ps1`, `enviar.ps1`, `cerrar_pestana.ps1` y `toast.ps1` se guardan con BOM UTF-8: Windows PowerShell 5.1
   los leía como ANSI y el patrón `S[ií]` nunca reconocía el botón «Sí» de VS Code en español.
+
+Encontrado al probar desde cero en una VM con Windows 11 limpio (`scripts/dev/test-vm.ps1`, `docs/prueba-desde-cero.md`):
+- `panel.ps1 -Action Install` registraba la tarea con `$env:USERDOMAIN\$env:USERNAME`, que no siempre corresponde a la
+  cuenta real («No mapping between account names and security IDs»). Ahora usa la identidad real del usuario.
+- Responder preguntas con opciones (AskUserQuestion) desde el panel:
+  - si UI Automation lanzaba «Unrecognized error», el script se caía entero (`script_error`);
+  - buscaba las opciones en toda la ventana y hacía clic en preguntas ya respondidas del historial (fuera de
+    pantalla), así que informaba «Elegido» sin efecto;
+  - con un solo resultado, PowerShell 5.1 devuelve el objeto suelto y `.Count` queda vacío, así que encontraba la
+    opción y no la pulsaba.
+  Ahora busca solo dentro del cuadro de la pregunta abierta, ignora lo que está fuera de pantalla, verifica que la
+  pregunta se cerró, reintenta con clics reales y, si no se cierra, responde `not_applied` en vez de decir que funcionó.
+- El escribano no encontraba el CLI `claude` en equipos que solo tienen la extensión de VS Code: ahora usa también el
+  binario que trae la extensión. `/api/diagnostico` informa `scribe_cli` y `scribe_cli_found`.
